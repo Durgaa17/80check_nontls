@@ -71,37 +71,116 @@ python 80check.py 192.168.1.0/24
 
 ## Go version
 
+Fast concurrent implementation written in pure Go (no external dependencies).
+
+### Requirements
+
+- Go 1.18 or newer (any recent version works)
+
+Install Go:
+
+```bash
+# Linux / macOS / WSL
+# See https://go.dev/dl/
+
+# Termux (Android)
+pkg install golang
+```
+
 ### Build
 
 ```bash
+# Simple local build
 go build -o 80check 80check.go
+
+# Smaller binary (strip debug info)
+go build -ldflags="-s -w" -o 80check 80check.go
 ```
+
+After building you get a single static binary named `80check` (or `80check.exe` on Windows).
 
 ### Run
 
 ```bash
+# Interactive (asks for target)
+./80check
+
+# Single IP
 ./80check 8.8.8.8
+./80check 1.1.1.1
+
+# CIDR ranges
 ./80check 192.168.1.0/24
-./80check -t 2s -w 20 10.0.0.0/20
+./80check 10.0.0.0/20
+./80check 172.16.0.0/16
+
+# With flags
+./80check -t 2s -w 30 192.168.1.0/24
+./80check -t 1500ms -w 50 10.0.0.0/22
 ```
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-t` | Timeout (e.g. `3s`, `1500ms`) | 3s |
-| `-w` | Max concurrent workers | 40 |
+### Flags
 
-### Cross-compile (optional)
+| Flag | Description | Default | Example |
+|------|-------------|---------|---------|
+| `-t` | Connection timeout | `3s` | `-t 2s`, `-t 1500ms`, `-t 1s` |
+| `-w` | Max concurrent workers | `40` | `-w 20`, `-w 100` |
+| `-h` | Show help | – | `./80check -h` |
+
+### Cross-compile (build for other platforms)
 
 ```bash
-# Linux
-GOOS=linux GOARCH=amd64 go build -o 80check-linux 80check.go
+# Linux amd64
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o 80check-linux 80check.go
 
-# Windows
-GOOS=windows GOARCH=amd64 go build -o 80check.exe 80check.go
+# Windows amd64
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o 80check.exe 80check.go
 
-# Android (Termux can run the binary if built for arm64)
-GOOS=linux GOARCH=arm64 go build -o 80check-arm64 80check.go
+# macOS Apple Silicon
+GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o 80check-macos 80check.go
+
+# Android / Termux (arm64)
+GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o 80check-arm64 80check.go
+
+# Android 32-bit (older devices)
+GOOS=linux GOARCH=arm go build -ldflags="-s -w" -o 80check-arm 80check.go
 ```
+
+### Termux (Android)
+
+```bash
+# Install Go
+pkg update && pkg install golang
+
+# Clone or download the files
+git clone https://github.com/Durgaa17/80check_nontls.git
+cd 80check_nontls
+
+# Build
+go build -ldflags="-s -w" -o 80check 80check.go
+
+# Run
+./80check 192.168.1.0/24
+./80check -t 2s -w 20 10.0.0.0/24
+```
+
+You can also download a pre-built `80check-arm64` binary and run it directly after `chmod +x`.
+
+### Performance tips
+
+- Default 40 workers is a good balance for most networks and phones.
+- On a powerful machine / fast LAN you can raise workers: `-w 100` or higher.
+- On slow mobile data or weak devices lower it: `-w 10` or `-w 20`.
+- Timeout of `1s`–`2s` is usually enough on LAN; keep `3s` for the internet.
+- The tool automatically skips network & broadcast addresses and limits to 1024 hosts for safety.
+
+### Notes
+
+- Only **IPv4** is supported in the current Go version (same as the Python version for simplicity).
+- The scanner connects to **TCP port 80** and tries to read the first HTTP response line.
+- Any HTTP response (even 404 / 403 / 302) counts as **REACHABLE**.
+- Connection refused → **NOT REACHABLE**
+- Timeout → **NO RESPONSE**
 
 ---
 
@@ -109,12 +188,12 @@ GOOS=linux GOARCH=arm64 go build -o 80check-arm64 80check.go
 
 ```
 ==================================================
-  80check_nontls  (port-80 scanner)
+  80check_nontls  (port-80 scanner)  [Go]
 ==================================================
 [*] Target      : 192.168.1.0/24
 [*] Hosts       : 254
 [*] Port        : 80
-[*] Timeout     : 3.0s
+[*] Timeout     : 3s
 [*] Started     : 14:22:01
 --------------------------------------------------
 [+] 192.168.1.1:80   12ms   REACHABLE   HTTP/1.1 200 OK
