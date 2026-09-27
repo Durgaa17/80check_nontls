@@ -1,0 +1,23 @@
+# Binaries
+80check
+80check.exe
+80check-linux
+80check-arm64
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.env
+.venv
+venv/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
